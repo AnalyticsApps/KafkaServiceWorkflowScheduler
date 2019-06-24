@@ -1,0 +1,14 @@
+Pending Task:
+
+1) Handling Avro Schema -
+https://www.learningjournal.guru/courses/kafka/kafka-foundation-training/schema-evolution-part-1/
+https://github.com/Landoop/kafka-avro-generator/blob/master/build.sbt
+https://github.com/mrsushil118/Kafka-Avro-scala/blob/master/src/main/scala/Consumer.scala
+https://dzone.com/articles/kafka-avro-scala-example
+https://medium.com/@lukasgrasse/producing-and-consuming-avro-messages-over-kafka-in-scala-edc26d69298c
+https://github.com/TedBear42/kafka_training
+https://github.com/mguenther/kafka-scala-examples/tree/master/src/main/scala/com/mgu/kafkaexamples
+
+
+2) Kafka Admin commands
+https://jaceklaskowski.gitbooks.io/apache-kafka/kafka-admin-ConfigCommand.html

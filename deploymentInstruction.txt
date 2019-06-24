@@ -1,0 +1,184 @@
+Lab 1
+=====
+
+    1) Setup and Start the Kafka Docker Container
+    =============================================
+
+    docker run -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=127.0.0.1 --env ADVERTISED_PORT=9092 --name deploykafka --detach spotify/kafka
+
+    docker ps
+
+
+
+    2) Create a Topic
+    =================
+
+    docker exec -it deploykafka bash
+
+    cd /opt/kafka_2.11-0.10.1.0/bin
+
+    ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 2 --topic lab1Topic
+
+    ./kafka-topics.sh --list --zookeeper localhost:2181
+
+
+    3) Test Producer and Consumer
+    =============================
+
+
+    ./kafka-console-producer.sh --broker-list localhost:9092 --topic lab1Topic
+
+    In an other terminal
+
+    docker exec -it deploykafka bash
+    cd /opt/kafka_2.11-0.10.1.0/bin
+    ./kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic lab1Topic --from-beginning
+
+
+    4) Run the Producer/Consumer Application
+    ========================================
+
+    Update the property servicefile in src/main/resources/lab1/serviceProducer.properties and give the full path for the file src/main/resources/ServiceData.txt
+
+    Run the Producer App - src/main/scala/com/kafka/lab1/ServiceProducer.scala
+
+    Run the Consumer App - src/main/scala/com/kafka/lab1/BillingConsumer.scala
+
+
+
+
+Lab 2
+=====
+
+    1) Create a Topic
+    =================
+
+    docker exec -it deploykafka bash
+
+    cd /opt/kafka_2.11-0.10.1.0/bin
+
+    ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 2 --topic lab2DeployTopic
+
+    ./kafka-topics.sh --list --zookeeper localhost:2181
+
+
+    2) Run the Producer/Consumer Application
+    ========================================
+
+    Run the Producer App - src/main/scala/com/kafka/lab2/DeploymentProducerService.scala
+
+    Run the Consumer App - src/main/scala/com/kafka/lab2/DeploymentConsumerService.scala
+
+
+Lab 3
+=====
+Two types of partitioner.
+
+            Custom Partitioner  - should implement org.apache.kafka.clients.producer.Partitioner
+
+            Default Partitioner - uses org.apache.kafka.clients.producer.internals.DefaultPartitioner
+                                - Manual  : When you create ProducerRecord(topicName, partitionId,messageKey,message) to specify a partition ID.
+                                  Hashing : When you create ProducerRecord(topicName,messageKey,message), it uses DefaultPartitioner.
+                                  Spraying(Random Load Balancing) : When you create ProducerRecord(topicName, message), it uses end messages
+                                                                    to all the partitions in round-robin fashion.
+
+
+
+    1) Create a Topic
+    =================
+
+    docker exec -it deploykafka bash
+
+    cd /opt/kafka_2.11-0.10.1.0/bin
+
+    ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 3 --topic lab3MonitoringTopic
+
+    ./kafka-topics.sh --list --zookeeper localhost:2181
+
+
+    2) Run the Producer Application
+    ========================================
+
+    Run the Producer App - src/main/scala/com/kafka/lab3/MonitoringProducerService.scala
+
+
+Lab 4
+=====
+Two types of commits:
+
+                Manual commits: You can call a commitSync() or commitAsync() method anytime on the KafkaConsumer.
+                Auto commits:   You can set auto.commit to true and set the auto.commit.interval.ms property with a value in milliseconds.
+
+
+Three types of offset reading:
+
+    Read from Beginning:      kafkaConsumer.seekToBeginning(topicPartition)
+    Read from End:            kafkaConsumer.seekToEnd(topicPartition)
+    Read from a give offset:  kafkaConsumer.seek(topicPartition, startingOffset)
+
+
+    1) Run the Consumer Application
+    ========================================
+
+    Run the Consumer App - src/main/scala/com/kafka/lab4/MonitoringConsumerManualOffset.scala
+
+
+
+
+
+Lab 5
+=====
+Consumer Manual commits: We do a partial commit in ConsumerRebalanceListener.onPartitionsRevoked and commitSync() or commitAsync() method for commit
+
+If we do not poll for long time due to processing of records, the group coordinator assume that the consumer is dead. Group coordinator may trigger
+rebalancing activity. In both cases the current partition is taken away and reassigned to a new consumer. In such cases, you would want to commit
+whatever you have already processed before the ownership of the partition is taken away from you. And the new owner of the partition is supposed
+to start consuming it from the last committed offset. For that, we keep committing intermediate offsets instead of having committed the current
+offset in the end. When partition is revoked the ConsumerRebalanceListener.onPartitionsRevoked will commit whatever you already processed.
+
+    1) Run the Producer Application
+    ========================================
+
+    Run the Producer App - src/main/scala/com/kafka/lab3/MonitoringProducerService.scala
+
+
+    2) Run the Consumer Application
+    ========================================
+
+    Run the Consumer App - src/main/scala/com/kafka/lab5/MonitoringConsumerManualOffset.scala
+
+
+
+   // Example for ConsumerRebalanceListener where the offset is stored in database.
+   public class SaveOffsetsOnRebalance implements ConsumerRebalanceListener {
+       private Consumer<?,?> consumer;
+
+       public SaveOffsetsOnRebalance(Consumer<?,?> consumer) {
+           this.consumer = consumer;
+       }
+
+       public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+           // save the offsets in an external store using some custom code not described here
+           for(TopicPartition partition: partitions)
+              saveOffsetInExternalStore(consumer.position(partition));
+       }
+
+       public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+           // read the offsets from an external store using some custom code not described here
+           for(TopicPartition partition: partitions)
+              consumer.seek(partition, readOffsetFromExternalStore(partition));
+       }
+   }
+
+
+
+
+
+Stopping and Removing Kafka Image
+==================================
+
+(base) 72-7-1-8:~ nisanth$ docker stop deploykafka
+deploykafka
+(base) 72-7-1-8:~ nisanth$ docker rm deploykafka
+deploykafka
+(base) 72-7-1-8:~ nisanth$ docker rmi spotify/kafka
